@@ -1,0 +1,3 @@
+[submodule "project-group99"]
+	path = project-group99
+	url = git@github.com:cornell-ece5745/project-group99.git
