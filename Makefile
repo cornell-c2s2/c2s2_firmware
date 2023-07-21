@@ -55,6 +55,9 @@ ifndef VERILATOR_VERSION
 # Now we can use the Ruby file to install it with Homebrew
 	@brew install verilator.rb
 	@rm verilator.rb
+
+# Pin the installation so it doesn't get overwritten
+	@brew pin verilator
 	@echo "[INFO] - Verilator 4.036 Installed!"
 endif
 
@@ -72,20 +75,30 @@ venv:
 	@echo "[INFO] Building Python Virtual Environment in venv/pymtl3..."
 	@mkdir -p venv
 	@python3 -m venv venv/pymtl3
-	@echo " - Virtual Environment Build!"
+	@echo "[INFO] - Virtual Environment Build!"
+
+# Upgrade Pip, if needed
+	@echo "[INFO] Upgrading Pip..."
+	@$(VENV_PYTHON) -m pip install --upgrade pip
+	@echo "[INFO] - Pip Upgraded!"
 
 # Install PyMTL3
-	@echo "Installing PyMTL3 in Virtual Environment.."
+	@echo "[INFO] Installing PyMTL3 in Virtual Environment.."
 	@$(VENV_PYTHON) -m pip install pymtl3
 	@echo "[INFO] - PyMTL3 Installed"
 
 # Install Graphviz
-	@echo "Installing Graphviz in Virtual Environment..."
+	@echo "[INFO] Installing Graphviz in Virtual Environment..."
 	@$(VENV_PYTHON) -m pip install graphviz
 	@echo "[INFO] - Graphviz Installed"
 	
 # Install FTDI
-	@echo "Installing PyFTDI in Virtual Environment..."
+	@echo "[INFO] Installing PyFTDI in Virtual Environment..."
 	@$(VENV_PYTHON) -m pip install pyftdi
 	@echo "[INFO] - PyFTDI Installed"
+
+# Install SPIDriver
+	@echo "[INFO] Installing SPIDriver in Virtual Environment..."
+	@$(VENV_PYTHON) -m pip install spidriver
+	@echo "[INFO] - SPIDriver Installed"
 	
