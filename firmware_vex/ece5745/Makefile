@@ -12,13 +12,13 @@ TOOLCHAIN_PREFIX=riscv64
 
 .SUFFIXES:
 
-PATTERN = blink
+PATTERN = ece5745
 
 hex:  ${PATTERN:=.hex}
 
 %.elf: %.c ../sections.lds ../crt0_vex.S
 	$(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-unknown-elf-gcc -I../ -I../generated/ -O0 -mabi=ilp32 -march=rv32i_zicsr -D__vexriscv__ -Wl,-Bstatic,-T,../sections.lds,--strip-debug -ffreestanding -nostdlib -o $@ ../crt0_vex.S ../isr.c $<
-	${TOOLCHAIN_PATH}$(TOOLCHAIN_PREFIX)-unknown-elf-objdump -D blink.elf > blink.lst
+	${TOOLCHAIN_PATH}$(TOOLCHAIN_PREFIX)-unknown-elf-objdump -D ece5745.elf > ece5745.lst
 
 %.hex: %.elf
 	$(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-unknown-elf-objcopy -O verilog $< $@
@@ -30,11 +30,11 @@ hex:  ${PATTERN:=.hex}
 client: client.c
 	gcc client.c -o client
 
-flash: blink.hex
-	python3 ../util/caravel_hkflash.py blink.hex
+flash: ece5745.hex
+	python3 ../util/caravel_hkflash.py ece5745.hex
 
-flash2: blink.hex
-	python3 ../util/caravel_flash.py blink.hex
+flash2: ece5745.hex
+	python3 ../util/caravel_flash.py ece5745.hex
 
 # ---- Clean ----
 
