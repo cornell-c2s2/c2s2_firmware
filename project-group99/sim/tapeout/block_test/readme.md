@@ -1,1 +1,0 @@
-Use this folder to create tests for your module ONLY
