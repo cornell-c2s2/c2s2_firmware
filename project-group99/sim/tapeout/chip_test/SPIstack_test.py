@@ -15,8 +15,7 @@ from SPI_v3.components.SPITestHarness import SPITestHarness
 
 def test_loopback( cmdline_opts ):
   # InstantiateTest Harness         DUT               # components  spi_bits
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts)
-  harness.dut.loopthrough_sel @= 1 # loopback mode
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts, loopback = 1 )
 
   requests  = [] # Create empty list for requests
   responses = [] # Create empty list for responses
@@ -28,8 +27,7 @@ def test_loopback( cmdline_opts ):
 
 def test_loopback_stream( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
-  harness.dut.loopthrough_sel @= 1 # loopback mode
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 1 )
 
   requests  = [] # Create empty list for requests
   responses = [] # Create empty list for responses

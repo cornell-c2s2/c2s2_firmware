@@ -58,8 +58,6 @@ def get_req_resp(file_path):
 def test_gcd_rtl( test_params, cmdline_opts ):
   harness = SPITestHarness( SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts)
 
-  harness.dut.loopthrough_sel @= 0 # passthrough mode
-
   requests  = [] # Create empty list for requests
   responses = [] # Create empty list for responses
 
@@ -70,15 +68,20 @@ def test_gcd_rtl( test_params, cmdline_opts ):
       requests[i] = concat(requests[i].a, requests[i].b)
   
   for i in range(len(responses)):
-      responses[i] = sext(responses[i], 32)
+      if( harness.loopback ):
+          responses[i] = requests[i]
+      else:
+        responses[i] = sext(responses[i], 32)
 
   harness.t_mult_msg(32, requests, 32, responses)
 
 def test_gcd_file( cmdline_opts ):
   harness = SPITestHarness( SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts)
 
-  harness.dut.loopthrough_sel @= 0 # passthrough mode
-
   file_dir = os.path.dirname(os.path.realpath(__file__))
   requests, responses = get_req_resp( os.path.join( file_dir, "GCD_Data.txt" ) )
-  harness.t_mult_msg(32, requests, 32, responses)
+  
+  if( harness.loopback ):
+    harness.t_mult_msg(32, requests, 32, requests )
+  else:
+    harness.t_mult_msg(32, requests, 32, responses)

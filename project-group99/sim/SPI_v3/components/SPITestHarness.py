@@ -32,9 +32,13 @@ class SPITestHarness( object ):
   # spi_bits: number of bits in an spi packet. Each packet consists of 2 
   #           flow control bits, (optional) component address bits, and the data
   #-----------------------------------------------------------------------
-  def __init__( s, DESIGN, num_components, spi_bits, cmdline_opts, trace=True ):
+  def __init__( s, DESIGN, num_components, spi_bits, cmdline_opts, loopback = None, trace=True ):
  
     s.dut = DESIGN
+    if( loopback == None ):
+      s.loopback = sys._loopback # Take from command line
+    else:
+      s.loopback = loopback
     s.is_phy_test = sys._is_physical  # Use the --physical flag if you want to use the Physical Test Harness and the SPIDriver
     s.dut = config_model_with_cmdline_opts( s.dut, cmdline_opts, [] )
     s.dut.apply(DefaultPassGroup(linetrace=True)) #commented out for chip-sim
@@ -42,7 +46,7 @@ class SPITestHarness( object ):
     # s.dut.apply( Mamba2020( print_line_trace=trace ) )
 
     if s.is_phy_test:
-      port = '/dev/ttyUSB0'
+      port = '/dev/tty.usbserial-DO01JGPK'
       # keep retrying since SPI Driver sometimes doesnt work
       while True:
         try:
@@ -57,7 +61,7 @@ class SPITestHarness( object ):
       # s.driver.setmode(3) # set to SPI mode 3
       s.driver.unsel() # raise CS line
       s.driver.seta(1) # reset the chip
-      s.driver.setb(looparound) # Set the chip to looparound/passthrough mode 
+      s.driver.setb( s.loopback ) # Set the chip to looparound/passthrough mode if appropriate
       s.driver.seta(0) # Take chip out of reset
     else:
       s.dut.spi_min.cs @= 1

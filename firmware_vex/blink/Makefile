@@ -39,7 +39,7 @@ flash2: blink.hex
 # ---- Clean ----
 
 clean:
-	rm -f *.elf *.hex *.bin *.vvp *.vcd
+	rm -f *.elf *.hex *.bin *.vvp *.vcd *.lst *.hex.orig
 
 .PHONY: clean hex all flash
 
