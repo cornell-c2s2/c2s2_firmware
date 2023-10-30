@@ -1,5 +1,5 @@
 // ==========================================================================
-// PacketDisassemblerVRTL.py
+// PacketDisassemblerVRTL.v
 // ==========================================================================
 // PacketDisassembler with variable nbits_in and nbits_out. 
 // Input: one big packet of size nbits_in Output: small packets of size nbits_out.
@@ -10,6 +10,9 @@
 // Eg: 16 bit input packet, we want 8 bit output packets.
 //     Input is 0xABCD. 0xAB will go into reg[1] and 0xCD will go into reg[0].
 //     Next cycle the Disassembler will output 0xAB. The cycle after that 0xCD will be outputted
+
+`ifndef SPI_V3_COMPONENTS_PACKETDISASSEMBLER_V
+`define SPI_V3_COMPONENTS_PACKETDISASSEMBLER_V
 
 `include "vc/muxes.v" 
 
@@ -24,48 +27,43 @@ module SPI_v3_components_PacketDisassemblerVRTL
   input  logic                  clk,
   input  logic                  reset,
                                  
-  input  logic                  req_val,
-  output logic                  req_rdy,
-  input  logic [nbits_in-1:0]   req_msg,
+  input  logic                  recv_val,
+  output logic                  recv_rdy,
+  input  logic [nbits_in-1:0]   recv_msg,
                                  
-  output logic                  resp_val,
-  input  logic                  resp_rdy,
-  output logic [nbits_out-1:0]  resp_msg
+  output logic                  send_val,
+  input  logic                  send_rdy,
+  output logic [nbits_out-1:0]  send_msg
 );
 
-  // logic [num_regs-1:0][nbits_out-1:0] regs;
-  logic [nbits_out-1:0] regs_0;
-  logic [nbits_out-1:0] regs_1;
+  logic [num_regs-1:0][nbits_out-1:0] regs;
   logic [$clog2(num_regs):0]          counter; // the +1 is because we count up to num_regs e.g. if num_regs=2 then counter must go from 0->1->2
   logic                               transaction_val;
 
   // // Mux
-  // logic [num_regs-1:0][nbits_out-1:0] reg_mux_in_;
-  logic [nbits_out-1:0] reg_mux_in_0;
-  logic [nbits_out-1:0] reg_mux_in_1;
+  logic [num_regs-1:0][nbits_out-1:0] reg_mux_in_;
   logic [reg_bits-1:0]                reg_mux_sel;
   logic [nbits_out-1:0]               reg_mux_out;
 
-  vc_Mux2 #(nbits_out) reg_mux ( // muxes each part of the input packet to the output
-    .in0(reg_mux_in_0),
-    .in1(reg_mux_in_1),
+  vc_MuxN #(nbits_out, num_regs) reg_mux ( // muxes each part of the input packet to the output
+    .in(reg_mux_in_),
     .sel(reg_mux_sel),
     .out(reg_mux_out)
   );
 
   // Assigns
-  assign req_rdy   = ~transaction_val;
-  assign resp_val  = transaction_val;
+  assign recv_rdy     = ~transaction_val;
+  assign send_val    = transaction_val;
+  assign reg_mux_sel = num_regs - counter - 1; //value truncated to reg_bits
+  assign send_msg    = reg_mux_out;
 
   // Counter Update Logic
   always_ff @(posedge clk) begin
-    if (reset || ((counter == (num_regs-1)) & resp_rdy)) begin // if reset or you have sent the last packet
+    if (reset | ((counter == (num_regs-1)) & send_rdy)) begin // if reset or you have sent the last packet
       counter <= 0;
-    end
-    else if (resp_val & resp_rdy) begin // if we send a packet
+    end else if (send_val & send_rdy) begin // if we send a packet
       counter <= counter + 1;
-    end
-    else begin
+    end else begin
       counter <= counter;
     end
   end
@@ -74,65 +72,41 @@ module SPI_v3_components_PacketDisassemblerVRTL
   always_ff @(posedge clk) begin
     if (reset) begin
       transaction_val <= 0;
-    end
-    else if ((req_val & req_rdy) || ((counter == (num_regs-1)) & resp_rdy)) begin // if there is an input packet or you have sent the last output packet
-      transaction_val <= req_val & req_rdy; // set transaction val to 1 if it is an input packet
-    end
-    else begin
+    end else if ((recv_val & recv_rdy) | ((counter == (num_regs-1)) & send_rdy)) begin // if there is an input packet or you have sent the last output packet
+      transaction_val <= recv_val & recv_rdy; // set transaction val to 1 if it is an input packet
+    end else begin
       transaction_val <= transaction_val;
     end
   end
   
-  // genvar i;
-  // generate 
-  //   for (i=0; i < num_regs; i++) begin
+  genvar i;
+  generate 
+  for (i=0; i < num_regs; i++) begin
 
-  //     // Sequential Reg Update Logic
-  //     if (i == (num_regs - 1)) begin // this is the top register
-  //       localparam zext_len = 0 ? (nbits_in%nbits_out == 0) : (nbits_out - (nbits_in - (nbits_out*num_regs-nbits_out) )); // value to zero extend to result in an nbits_out long vector;
-  //       always_ff @(posedge clk) begin
-  //         if (req_val & req_rdy) begin
-  //           regs[i] <= { {zext_len{1'b0}} , req_msg[ nbits_in-1 : (nbits_out*num_regs-nbits_out) ] }; // holds MSb, zext to fit register size 
-  //         end
-  //       end
-  //     end 
-  //     else begin // not top register
-  //       always_ff @(posedge clk) begin
-  //         if (req_val & req_rdy) begin
-  //           regs[i] <= req_msg[ (nbits_out*i + nbits_out -1) : (nbits_out*(i)) ];
-  //         end
-  //       end 
-  //     end
+    // Sequential Reg Update Logic
+    if (i == (num_regs - 1)) begin // this is the top register
+      localparam zext_len = 0 ? (nbits_in%nbits_out == 0) : (nbits_out - (nbits_in - (nbits_out*num_regs-nbits_out) )); // value to zero extend to result in an nbits_out long vector;
+      always_ff @(posedge clk) begin
+        if (recv_val & recv_rdy) begin
+          regs[i] <= { {zext_len{1'b0}} , recv_msg[ nbits_in-1 : (nbits_out*num_regs-nbits_out) ] }; // holds MSb, zext to fit register size 
+        end
+      end
+    end 
+    else begin // not top register
+      always_ff @(posedge clk) begin
+        if (recv_val & recv_rdy) begin
+          regs[i] <= recv_msg[ (nbits_out*i + nbits_out -1) : (nbits_out*(i)) ];
+        end
+      end 
+    end
 
-  //     // Mux and Output Logic
-  //     always_comb begin
-  //       reg_mux_in_[i][nbits_out-1:0] = regs[i][nbits_out-1:0];
-        
-        
-  //     end
-  //   end
-  // endgenerate
-
-  // Sequential Reg Update Logic
-  localparam zext_len = 0 ? (nbits_in%nbits_out == 0) : (nbits_out - (nbits_in - (nbits_out*num_regs-nbits_out) )); // value to zero extend to result in an nbits_out long vector;
-  always_ff @(posedge clk) begin
-    if (req_val & req_rdy) begin
-      regs_1 <= { {zext_len{1'b0}} , req_msg[ nbits_in-1 : (nbits_out*num_regs-nbits_out) ] }; // holds MSb, zext to fit register size 
+    // Mux and Output Logic
+    always_comb begin
+      reg_mux_in_[i] = regs[i];
     end
   end
-  always_ff @(posedge clk) begin
-    if (req_val & req_rdy) begin
-      regs_0 <= req_msg[ (nbits_out -1) : 0 ];
-    end
-  end 
+  endgenerate
 
-  // Mux and Output Logic
-  always_comb begin
-    reg_mux_in_0[nbits_out-1:0] = regs_0[nbits_out-1:0];
-    reg_mux_in_1[nbits_out-1:0] = regs_1[nbits_out-1:0];
-  end
-  
-  assign resp_msg = reg_mux_out;
-  assign reg_mux_sel = num_regs - counter - 1; //value truncated to reg_bits
 endmodule
 
+`endif /* SPI_V3_COMPONENTS_PACKETDISASSEMBLER_V */

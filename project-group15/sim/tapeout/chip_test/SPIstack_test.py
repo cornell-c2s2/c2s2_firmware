@@ -16,7 +16,7 @@ from SPI_v3.components.SPITestHarness import SPITestHarness
 
 def test_loopback( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 1)
   harness.dut.loopthrough_sel @= 1 # loopback mode
 
   requests  = [] # Create empty list for requests
@@ -40,22 +40,22 @@ req_msgs_long,  resp_msgs_long  = mk_msgs(range(0x1,  0x7f))
 req_msgs_rand,  resp_msgs_rand  = mk_msgs(random.sample(range(0x1, 0x7f), 0x2f))
 
 def test_small( cmdline_opts ):
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0
   harness.t_mult_msg(32, req_msgs_small, 32, resp_msgs_small)
 
 def test_large( cmdline_opts ):
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0
   harness.t_mult_msg(32, req_msgs_large, 32, resp_msgs_large)
 
 def test_long( cmdline_opts ):
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0
   harness.t_mult_msg(32, req_msgs_long, 32, resp_msgs_long)
 
 def test_random( cmdline_opts ):
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0
   harness.t_mult_msg(32, req_msgs_rand, 32, resp_msgs_rand)
 

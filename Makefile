@@ -87,6 +87,11 @@ venv:
 	@$(VENV_PYTHON) -m pip install pymtl3
 	@echo "[INFO] - PyMTL3 Installed"
 
+# Install Numpy
+	@echo "[INFO] Installing Graphviz in Virtual Environment..."
+	@$(VENV_PYTHON) -m pip install numpy
+	@echo "[INFO] - Graphviz Installed"
+
 # Install Graphviz
 	@echo "[INFO] Installing Graphviz in Virtual Environment..."
 	@$(VENV_PYTHON) -m pip install graphviz

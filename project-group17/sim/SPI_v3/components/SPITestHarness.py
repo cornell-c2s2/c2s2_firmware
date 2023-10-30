@@ -13,6 +13,8 @@ from pymtl3.stdlib.test_utils import config_model_with_cmdline_opts
 
 from math import ceil
 import copy
+from spidriver import SPIDriver
+import sys
 
 #=========================================================================
 # TestHarness
@@ -30,18 +32,44 @@ class SPITestHarness( object ):
   # spi_bits: number of bits in an spi packet. Each packet consists of 2 
   #           flow control bits, (optional) component address bits, and the data
   #-----------------------------------------------------------------------
-  def __init__( s, DESIGN, num_components, spi_bits, cmdline_opts, trace=True ):
+  def __init__( s, DESIGN, num_components, spi_bits, cmdline_opts, loopback = None, trace=True ):
  
     s.dut = DESIGN
+    if( loopback == None ):
+      s.loopback = sys._loopback # Take from command line
+    else:
+      s.loopback = loopback
+    s.is_phy_test = sys._is_physical  # Use the --physical flag if you want to use the Physical Test Harness and the SPIDriver
     s.dut = config_model_with_cmdline_opts( s.dut, cmdline_opts, [] )
-    # s.dut.apply(DefaultPassGroup(linetrace=True)) #commented out for chip-sim
-    from pymtl3.passes.mamba import Mamba2020
-    s.dut.apply( Mamba2020( print_line_trace=trace ) )
+    s.dut.apply(DefaultPassGroup(linetrace=True)) #commented out for chip-sim
+    # from pymtl3.passes.mamba import Mamba2020
+    # s.dut.apply( Mamba2020( print_line_trace=trace ) )
 
-    s.dut.spi_min.cs @= 1
-    s.dut.spi_min.sclk @= 0
-    s.dut.spi_min.mosi @= 0
-    s.dut.spi_min.miso @= 0
+    if s.is_phy_test:
+      # Change port to your necessary port
+      # port = '/dev/ttyUSB0'
+      port = '/dev/tty.usbserial-DO01JGPK'
+      # keep retrying since SPI Driver sometimes doesnt work
+      while True:
+        try:
+          s.driver = SPIDriver(port) # change for your port
+        except KeyboardInterrupt:
+          print("Got control-C while trying to connect to SPIDriver, exiting")
+          exit()
+        except:
+          continue
+        break
+      
+      # s.driver.setmode(3) # set to SPI mode 3
+      s.driver.unsel() # raise CS line
+      s.driver.seta(1) # reset the chip
+      s.driver.setb( s.loopback ) # Set the chip to looparound/passthrough mode if appropriate
+      s.driver.seta(0) # Take chip out of reset
+    else:
+      s.dut.spi_min.cs @= 1
+      s.dut.spi_min.sclk @= 0
+      s.dut.spi_min.mosi @= 0
+      s.dut.spi_min.miso @= 0
 
     s.dut.sim_reset() # Reset the simulator
 
@@ -95,6 +123,7 @@ class SPITestHarness( object ):
     actual_responses = []
     actual_resp_addr = []
     resp_msgs = []
+    timeout_cntr = 0
 
     def _assemble_msg( addr ):
       # assemble full response from spi packets
@@ -112,6 +141,7 @@ class SPITestHarness( object ):
 
     def _process_resp(resp):
       if resp[s.spi_bits-1]==1: #check if valid response
+        timeout_cntr = 0
         resp_msgs.append(resp[0:s.spi_msg_bits]) #save message if response val bit set
         if len(resp_msgs) == ceil(resp_len/s.spi_msg_bits): #check if number of packets received is enough to assemble a whole response message
           if s.component_bits > 0: #check if any component bits
@@ -125,12 +155,14 @@ class SPITestHarness( object ):
       resp_spi = s._t_spi(concat(Bits1(0), Bits1(0), comp_addr, zext(Bits1(0),s.spi_msg_bits)))
     else:
       resp_spi = s._t_spi(concat(Bits1(0), Bits1(0), zext(Bits1(0),s.spi_msg_bits)))
+    _process_resp(resp_spi)
 
     while(resp_spi[s.spi_bits-2] == 0 ):#poll until space available. We wait for the space bit (the second most significant bit) to be 1
       if s.component_bits > 0:
         resp_spi = s._t_spi(concat(Bits1(0), Bits1(0), comp_addr, zext(Bits1(0),s.spi_msg_bits)))
       else:
         resp_spi = s._t_spi(concat(Bits1(0), Bits1(0), zext(Bits1(0),s.spi_msg_bits)))
+      _process_resp(resp_spi)
 
     #space is now available in MinionAdapter queue for more messages
     for req in all_reqs:
@@ -150,11 +182,14 @@ class SPITestHarness( object ):
 
     # get responses to each request
     while len(actual_responses) < len(all_expected_resps): #wait until all exepected responses received 
+      if(timeout_cntr >= 1000 and s.is_phy_test):
+          raise TimeoutError("t_mult_msg has timed out")
       if s.component_bits > 0:
         resp_spi = s._t_spi( concat(Bits1(0), Bits1(1), comp_addr, zext(Bits1(0),s.spi_msg_bits)))
       else:
         resp_spi = s._t_spi( concat(Bits1(0), Bits1(1), zext(Bits1(0),s.spi_msg_bits)))
       _process_resp(resp_spi)
+      timeout_cntr +=1
 
 
     # all responses received - check results
@@ -165,7 +200,33 @@ class SPITestHarness( object ):
       assert all_expected_resps[i] == actual_responses[i]
 
   #helper functions
-  def _t_spi( s, pkt ): #send spi packets
+  def _t_spi(s, pkt):
+    if s.is_phy_test:
+      return s._t_phy_spi(pkt)
+    else:
+      return s._t_sim_spi(pkt)
+
+  def _t_phy_spi( s, pkt ): #send spi packets
+    num_bytes = ceil(s.spi_bits/8) # round up to nearest byte
+    pkt = zext(pkt, num_bytes*8)
+    send_arr = []
+    i = 0
+    for i in range(num_bytes):
+      send_arr.append(pkt[i*8:(i+1)*8].uint())
+    send_arr.reverse()
+    s.driver.sel()
+    rec_msg = list(s.driver.writeread(send_arr))
+    s.driver.unsel()
+    resp_bits = concat(b8(rec_msg[0]), b8(rec_msg[1]))
+    i = 2
+    while i < len(rec_msg):
+      resp_bits = concat(resp_bits, b8(rec_msg[i]))
+      i += 1
+    resp_bits = resp_bits >> (num_bytes*8 - s.spi_bits) 
+    return resp_bits
+
+  #helper functions
+  def _t_sim_spi( s, pkt ): #send spi packets
     s._start_transaction()
     resp_spi = Bits1(0)
     for i in range(s.spi_bits):

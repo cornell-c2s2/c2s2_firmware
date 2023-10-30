@@ -46,7 +46,7 @@ class TestHarness( Component ):
 FRAC_WIDTH = 8
 
 def recv( data, chip_select, mode, run, run_final ):
-  return WrapperMsgs.recv( 0, data, chip_select, mode, run, run_final )
+  return WrapperMsgs.recv( data, chip_select, mode, run, run_final )
 
 def send( r0, r1 ):
   return WrapperMsgs.send( r0, r1 )
