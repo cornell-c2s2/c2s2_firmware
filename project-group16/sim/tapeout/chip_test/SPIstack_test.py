@@ -20,7 +20,7 @@ MemReqType, MemRespType = mk_mem_msg( 8, 32, 32 )
 
 def test_loopback( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, True)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 1)
   harness.dut.loopthrough_sel @= 1 # loopback mode
 
   requests  = [] # Create empty list for requests
@@ -33,7 +33,7 @@ def test_loopback( cmdline_opts ):
 
 def test_loopback_stream( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 1)
   harness.dut.loopthrough_sel @= 1 # loopback mode
 
   requests  = [] # Create empty list for requests
@@ -47,7 +47,7 @@ def test_loopback_stream( cmdline_opts ):
 
 def test_basic_msgs( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0 # loopback mode
 
   requests = [
@@ -58,7 +58,7 @@ def test_basic_msgs( cmdline_opts ):
 
 def test_basic_multiple_msgs(cmdline_opts):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0 # loopback mode
   requests =[]
   responses = []
@@ -87,7 +87,7 @@ def test_basic_multiple_msgs(cmdline_opts):
 
 def test_random_msgs(cmdline_opts):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts,True)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(),    1,           34,   cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0 # loopback mode
 
   base_addr = 0

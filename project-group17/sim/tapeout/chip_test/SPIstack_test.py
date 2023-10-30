@@ -112,7 +112,7 @@ def make_very_long_msgs():
 
 def test_loopback( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 1)
   harness.dut.loopthrough_sel @= 1 # loopback mode
 
   requests  = [] # Create empty list for requests
@@ -123,7 +123,7 @@ def test_loopback( cmdline_opts ):
 
 def test_2x2( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0 # loopback mode
 
   weight_2x2 = [[2, 4],
@@ -141,7 +141,7 @@ def test_2x2( cmdline_opts ):
 
 def test_2x4( cmdline_opts ):
 
-  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts)
+  harness = SPITestHarness(SPI_TapeOutBlockRTL(), 1, 34, cmdline_opts, loopback = 0)
   harness.dut.loopthrough_sel @= 0 # loopback mode
 
   weight_2x4 = [[1, 2, 4 ,-1],
