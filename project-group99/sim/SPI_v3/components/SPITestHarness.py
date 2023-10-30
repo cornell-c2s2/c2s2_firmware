@@ -47,8 +47,8 @@ class SPITestHarness( object ):
 
     if s.is_phy_test:
       # Change port to your necessary port
-      port = '/dev/ttyUSB0'
-      # port = '/dev/tty.usbserial-DO01JGPK'
+      # port = '/dev/ttyUSB0'
+      port = '/dev/tty.usbserial-DO01JGPK'
       # keep retrying since SPI Driver sometimes doesnt work
       while True:
         try:
