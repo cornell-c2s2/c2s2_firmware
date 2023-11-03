@@ -23,7 +23,7 @@ def test_loopback( cmdline_opts ):
   requests.append(0xDEADBEEF)
   responses.append(0xDEADBEEF)
 
-  harness.t_mult_msg(32, requests, 32, responses)
+  harness.t_mult_msg(32, requests, 32, requests)
 
 def test_loopback_stream( cmdline_opts ):
 
