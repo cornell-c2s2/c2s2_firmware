@@ -1,2 +1,0 @@
-cd python
-python fixed_float_model_compare.py

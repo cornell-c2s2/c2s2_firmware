@@ -1,1 +1,0 @@
-from systolic_accelerator.systolic_mult.SystolicMultRTL import SystolicMultRTL

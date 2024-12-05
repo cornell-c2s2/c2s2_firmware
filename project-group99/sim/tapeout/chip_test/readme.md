@@ -1,1 +1,0 @@
-Use this folder to re run the same tests used in block test, but now over SPI using the SPITestHarness
